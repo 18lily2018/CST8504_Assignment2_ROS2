@@ -1,64 +1,84 @@
 import rclpy
 from rclpy.node import Node
 
-# Imports for the Image message type
+# Message type for sending images in ROS 2
 from sensor_msgs.msg import Image
 
-# Imports for converting between ROS and OpenCV images
+# Bridge between OpenCV images and ROS Image messages
 from cv_bridge import CvBridge
 
-# Imports for OpenCV functions
+# OpenCV for camera access and image handling
 import cv2
 
 
 class ImagePublisher(Node):
     """
-    A ROS2 node that captures video from the camera (index 0)
-    and publishes it as Image messages.
+    ImagePublisher node:
+    - Opens the default camera (index 0)
+    - Captures frames periodically
+    - Converts them to ROS Image messages
+    - Publishes them on the 'video_frames' topic
     """
+
     def __init__(self):
         # Call the parent Node constructor with the node name 'image_publisher'
         super().__init__('image_publisher')
 
-        # Create a publisher for the Image message type on the 'video_frames' topic
+        # Create a publisher that sends Image messages on 'video_frames'
+        # Queue size 10 is fine for this assignment
         self.publisher_ = self.create_publisher(Image, 'video_frames', 10)
 
-        # Define the period for the timer callback (e.g., 0.1 seconds)
-        timer_period = 0.1
-
-        # Create a timer that calls the timer_callback function every 'timer_period' seconds
-        self.timer = self.create_timer(timer_period, self.timer_callback)
-
-        # Initialize video capture object for camera index 0
+        # OpenCV: open the default camera (0 = laptop webcam)
         self.cap = cv2.VideoCapture(0)
 
-        # Initialize the CvBridge object for conversion
+        # Bridge used to convert between OpenCV images and ROS Image messages
         self.br = CvBridge()
 
+        # Create a timer that calls timer_callback every 0.1 seconds (10 Hz)
+        timer_period = 0.1
+        self.timer = self.create_timer(timer_period, self.timer_callback)
+
     def timer_callback(self):
-        # Read a frame from the video capture device
+        """
+        Timer callback:
+        - Reads a frame from the camera
+        - Converts it to a ROS Image
+        - Publishes it on the 'video_frames' topic
+        """
+        # Read one frame from the camera
         ret, frame = self.cap.read()
 
-        # Check if the frame was read successfully
-        if ret:
-            # Convert the OpenCV image (frame) to a ROS Image message and publish it
-            self.publisher_.publish(self.br.cv2_to_imgmsg(frame))
+        # If we failed to get a frame, log a warning and return
+        if not ret:
+            self.get_logger().warn('Failed to read frame from camera')
+            return
 
-            # Log the message for debugging (optional, but good practice)
-            self.get_logger().info('Publishing video frame')
-        else:
-            self.get_logger().warning('Failed to read frame from camera')
+        # Convert the OpenCV BGR image to a ROS Image message
+        img_msg = self.br.cv2_to_imgmsg(frame)
+
+        # Publish the Image message
+        self.publisher_.publish(img_msg)
 
 
 def main(args=None):
+    """
+    Main entry point for the node.
+    - Initializes rclpy
+    - Creates the ImagePublisher node
+    - Spins until shutdown (Ctrl + C)
+    - Cleans up the camera and node
+    """
     # Initialize the ROS 2 communication layer
     rclpy.init(args=args)
 
     # Create an instance of the ImagePublisher node
     image_publisher = ImagePublisher()
 
-    # Keep the node running until it is manually shut down (e.g., with Ctrl+C)
+    # Keep the node running until it is manually shut down
     rclpy.spin(image_publisher)
+
+    # Release the camera so it is not locked
+    image_publisher.cap.release()
 
     # Clean up and shut down the node
     image_publisher.destroy_node()

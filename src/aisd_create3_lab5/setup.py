@@ -1,6 +1,6 @@
 from setuptools import setup
 
-package_name = 'aisd_vision'
+package_name = 'aisd_create3_lab5'
 
 setup(
     name=package_name,
@@ -8,20 +8,19 @@ setup(
     packages=[package_name],
     data_files=[
         ('share/ament_index/resource_index/packages',
-            ['resource/aisd_vision']),
-        ('share/aisd_vision', ['package.xml']),
+         ['resource/' + package_name]),
+        ('share/' + package_name, ['package.xml']),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
     maintainer='aisd',
-    maintainer_email='you@example.com',
-    description='aisd vision package',
-    license='',
+    maintainer_email='your_email@example.com',
+    description='Lab 5 – Create3 bumper to LED demo',
+    license='Apache License 2.0',
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'image_publisher = aisd_vision.image_publisher:main',
-            'hands = aisd_vision.hands:main',
+            'bumper_led = aisd_create3_lab5.bumper_led:main',
         ],
     },
 )
